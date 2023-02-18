@@ -110,6 +110,11 @@ ENV/
 env.bak/
 venv.bak/
 
+.results
+results/
+cookies
+log_file.txt
+
 # Spyder project settings
 .spyderproject
 .spyproject
