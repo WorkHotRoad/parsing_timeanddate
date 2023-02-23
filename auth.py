@@ -1,16 +1,14 @@
 from selenium import webdriver
 from pathlib import Path
 import pickle, time
-
+from utils import URL_FOR_LOGIN
 
 BASE_DIR = Path(__file__).parent
 option = webdriver.FirefoxOptions()
 option.headless = True
 
-
-
-        # for proxy 
-# ip = '103.171.5.33' 
+        # for proxy
+# ip = '103.171.5.33'
 # port = 8080
 # firefox_capabilities = webdriver.DesiredCapabilities.FIREFOX
 # firefox_capabilities["marionette"] = True
@@ -22,13 +20,13 @@ option.headless = True
 # option.set_preference('network.proxy.ssl', ip)
 # option.set_preference('network.proxy.ssl_port', port)
 
-
 driver = webdriver.Firefox(
-    executable_path=r'F:\python\Dev\homework\geckodriver.exe',
+    # executable_path=r'F:\python\Dev\homework\geckodriver.exe',
+    executable_path=f'{BASE_DIR}\\geckodriver\\geckodriver.exe',
     options = option
 )
 
-url_for_login = "https://www.timeanddate.com/custom/login.html"
+# url_for_login = "https://www.timeanddate.com/custom/login.html"
 
 def get_cookies():
     try:
@@ -37,7 +35,7 @@ def get_cookies():
             auth_email = input("Для авторизации введите свою почту: ")
             auth_password = input("Введите пароль: ")
             print("Passing authorization...")
-            driver.get(url=url_for_login)
+            driver.get(url=URL_FOR_LOGIN)
             time.sleep(1)
             email_imput = driver.find_element("id", "email")
             email_imput.clear()
