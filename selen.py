@@ -48,7 +48,7 @@ def main():
         asession.cookies.set(cookie['name'], cookie['value'])
 
     start_time = datetime.now()
-    for number in range(1, 10):
+    for number in range(5958, 5960):
         result = []
         response = asession.get(MAIN_URL, params = {"n":number})
         # если нет ответа останавливаем
@@ -57,6 +57,11 @@ def main():
             break
         # получаем url города
         url = response.html.url
+        # проверяем конец списка городов
+        end_city = url.split("/")
+        # если города нет - заканчиваем
+        if not end_city[-1]:
+            break
         # забираем имя города, страны,
         pattern_for_plaсe = r"Time Zone in (.+)"
         table = response.html.xpath(
