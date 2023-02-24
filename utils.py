@@ -11,7 +11,7 @@ logging.basicConfig(
             logging.FileHandler(
                 filename="./log_file.txt",
                 encoding='utf-8',
-                mode='w'
+                mode='a+'
             )
         ], level=logging.WARNING
     )

@@ -2,6 +2,7 @@ from requests_html import HTMLSession
 import re
 import pickle
 from datetime import datetime
+import os
 
 from auth import BASE_DIR, get_cookies
 from utils import (
@@ -48,7 +49,9 @@ def main():
         asession.cookies.set(cookie['name'], cookie['value'])
 
     start_time = datetime.now()
-    for number in range(5958, 5960):
+    # range(1, 10000)
+    for number in range(1, 10000):
+        print(f"парсис страницу {number}")
         result = []
         response = asession.get(MAIN_URL, params = {"n":number})
         # если нет ответа останавливаем
@@ -69,7 +72,7 @@ def main():
                 )
         place = re.search(
             pattern_for_plaсe, " ".join(table).replace(", ", "_")
-        ).group(1)
+        ).group(1).replace("/", "|")
         # создаем директорию для файлов
         results_dir = BASE_DIR/'results'
         results_dir.mkdir(parents=True, exist_ok=True)
@@ -110,7 +113,7 @@ def main():
     print("парсер закончил работу")
     print("Проверьте log_file")
     print(datetime.now() - start_time )
-
+    os.system("pause")
 
 if __name__=="__main__":
     main()
