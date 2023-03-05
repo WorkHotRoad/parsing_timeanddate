@@ -2,6 +2,7 @@ from requests_html import HTMLSession
 import re
 import pickle
 from datetime import datetime
+from unidecode import unidecode
 import os
 
 from auth import BASE_DIR, get_cookies
@@ -50,7 +51,7 @@ def main():
 
     start_time = datetime.now()
     # range(1, 10000)
-    for number in range(1, 10000):
+    for number in range(1391, 1392):
         print(f"парсис страницу {number}")
         result = []
         response = asession.get(MAIN_URL, params = {"n":number})
@@ -70,9 +71,22 @@ def main():
         table = response.html.xpath(
                     '//h1[@class="headline-banner__title"]/text()'
                 )
-        place = re.search(
-            pattern_for_plaсe, " ".join(table).replace(", ", "_")
-        ).group(1).replace("/", "|")
+        try:
+            place = re.search(
+                pattern_for_plaсe, " ".join(table).replace(", ", "_")
+            ).group(1).replace("/", "|")
+        except Exception:
+            log_text(number, r"Ошибка!")
+            continue
+
+
+        # сощдаем имя файла для записи
+        place = place.replace(" ", "_")
+        place = unidecode(place)
+        num_for_file = format(number, '0>4n')
+        name_file = f'{num_for_file}_{place}'
+        name_file = name_file.replace("__", "_")
+
         # создаем директорию для файлов
         results_dir = BASE_DIR/'results'
         results_dir.mkdir(parents=True, exist_ok=True)
@@ -94,19 +108,15 @@ def main():
                         ready_data.append(sort_res[i])
                 ready_data = ["|".join(x) for x in ready_data]
                 result += ready_data
-                if len(result) <2 :
-                    log_text(
-                        number, "нашли только 1но изменение, проверьте"
-                    )
             else:
                 log_text(number, "не нашли изменений")
                 result += ["No changes"]
         else:
             log_text(number, r"страница 'Time Zone' или 'Military Time'")
-            result += ["No changes"]
+            # result += ["No changes"]
         # сохраняем в фаил
-        num_for_file = format(number, '0>4n')
-        file_path = f"{results_dir}/{num_for_file}_{place}.txt"
+
+        file_path = f"{results_dir}/{name_file}.txt"
         with open(file_path, "w") as f:
             f.writelines(x+"\n" for x in result)
 
