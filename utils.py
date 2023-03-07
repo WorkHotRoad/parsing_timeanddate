@@ -21,8 +21,8 @@ def log_text(number, text):
     url_num = urljoin(MAIN_URL, n)
     logging.warning(f"{text}: {url_num}")
 
-def log_error():
-    logging.error("Нет доступа к сайту")
+def log_error(num):
+    logging.error(f"Нет доступа к сайту c городом{num}")
 
 def get_times_list(response):
     """функция возвращает начало временных промежутков"""

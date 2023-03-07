@@ -50,22 +50,28 @@ def main():
         asession.cookies.set(cookie['name'], cookie['value'])
 
     start_time = datetime.now()
-    # range(1, 10000)
-    for number in range(1391, 1392):
-        print(f"парсис страницу {number}")
+
+    # создаем директорию для файлов
+    results_dir_correct = BASE_DIR/'results'/'correct'
+    results_dir_correct.mkdir(parents=True, exist_ok=True)
+    results_dir_without_data = BASE_DIR/'results'/'without_data'
+    results_dir_without_data.mkdir(parents=True, exist_ok=True)
+    results_dir_time_zone_or_military_time = BASE_DIR/'results'/'time_zone_or_military_time'
+    results_dir_time_zone_or_military_time.mkdir(parents=True, exist_ok=True)
+    results_dir_errors_pages = BASE_DIR/'results'/'errors_pages'
+    results_dir_errors_pages.mkdir(parents=True, exist_ok=True)
+
+    #5959
+    for number in range(1, 5959):
+        print(f"парсим страницу {number}")
         result = []
         response = asession.get(MAIN_URL, params = {"n":number})
         # если нет ответа останавливаем
         if response is None:
-            log_error()
-            break
+            log_error(number)
+            continue
         # получаем url города
         url = response.html.url
-        # проверяем конец списка городов
-        end_city = url.split("/")
-        # если города нет - заканчиваем
-        if not end_city[-1]:
-            break
         # забираем имя города, страны,
         pattern_for_plaсe = r"Time Zone in (.+)"
         table = response.html.xpath(
@@ -76,10 +82,11 @@ def main():
                 pattern_for_plaсe, " ".join(table).replace(", ", "_")
             ).group(1).replace("/", "|")
         except Exception:
-            log_text(number, r"Ошибка!")
+            log_text(number, r"Ошибка при создании имени!")
+            file_path = f"{results_dir_errors_pages}/{name_file}.txt"
+            with open(file_path, "w") as f:
+                f.writelines(x+"\n" for x in result)
             continue
-
-
         # сощдаем имя файла для записи
         place = place.replace(" ", "_")
         place = unidecode(place)
@@ -87,36 +94,45 @@ def main():
         name_file = f'{num_for_file}_{place}'
         name_file = name_file.replace("__", "_")
 
-        # создаем директорию для файлов
-        results_dir = BASE_DIR/'results'
-        results_dir.mkdir(parents=True, exist_ok=True)
-
-        if 'time zone' not in place.lower():
-            # получаем все временные промежутки
-            times_list = get_times_list(response)
-            # получаем данные с нужными годами, сортируем и форматируем их
-            res = add_data(url, times_list, asession)
-            sort_res = sorted(
-                [[format_date(x[0]), format_time(x[1])] for x in res],
-                key=lambda x: x[0]
-            )
-            # удаляем дубли и объединяем данные
-            if sort_res:
-                ready_data = [sort_res[0]]
-                for i in range(1, len(sort_res)):
-                    if ready_data[-1][1] != sort_res[i][1]:
-                        ready_data.append(sort_res[i])
-                ready_data = ["|".join(x) for x in ready_data]
-                result += ready_data
-            else:
-                log_text(number, "не нашли изменений")
-                result += ["No changes"]
+        if 'time_zone' not in place.lower():
+            try:
+                # получаем все временные промежутки
+                times_list = get_times_list(response)
+                # получаем данные с нужными годами, сортируем и форматируем их
+                res = add_data(url, times_list, asession)
+                sort_res = sorted(
+                    [[format_date(x[0]), format_time(x[1])] for x in res],
+                    key=lambda x: x[0]
+                )
+                # удаляем дубли и объединяем данные
+                if sort_res:
+                    ready_data = [sort_res[0]]
+                    for i in range(1, len(sort_res)):
+                        if ready_data[-1][1] != sort_res[i][1]:
+                            ready_data.append(sort_res[i])
+                    ready_data = ["|".join(x) for x in ready_data]
+                    result += ready_data
+                else:
+                    log_text(number, "не нашли изменений")
+                    file_path = f"{results_dir_without_data}/{name_file}.txt"
+                    with open(file_path, "w") as f:
+                        f.writelines(x+"\n" for x in result)
+                    continue
+            except Exception:
+                log_text(number, r"Еще что-то случилось!")
+                file_path = f"{results_dir_errors_pages}/{name_file}.txt"
+                with open(file_path, "w") as f:
+                    f.writelines(x+"\n" for x in result)
+                continue
         else:
             log_text(number, r"страница 'Time Zone' или 'Military Time'")
-            # result += ["No changes"]
-        # сохраняем в фаил
+            file_path = f"{results_dir_time_zone_or_military_time}/{name_file}.txt"
+            with open(file_path, "w") as f:
+                f.writelines(x+"\n" for x in result)
+            continue
 
-        file_path = f"{results_dir}/{name_file}.txt"
+        # сохраняем в фаил
+        file_path = f"{results_dir_correct}/{name_file}.txt"
         with open(file_path, "w") as f:
             f.writelines(x+"\n" for x in result)
 
