@@ -2,36 +2,19 @@ from requests_html import HTMLSession
 import re
 import pickle
 from datetime import datetime
-from unidecode import unidecode
+
 import os
 
-from auth import BASE_DIR, get_cookies
+from auth import get_cookies
 from utils import (
-    log_text, log_error,
-    get_times_list, format_time,
-    format_date, add_data,
-    MAIN_URL
+    log_text, log_error, get_times_list,
+    format_time, format_date, add_data,
+    save_file, MAIN_URL, format_name,
+    results_dir_correct,
+    results_dir_without_data,
+    results_dir_time_zone_or_military_time
 )
 
-
-def add_data(url, times_list, session):
-    res = []
-    for i in times_list:
-        response = session.get(url+"?syear="+i)
-        text = response.html.xpath(
-            '//table[@id="tb-zone"]/tbody/tr/descendant-or-self::*/text()'
-        )
-        text =(" ".join(text))
-        #выбираем все года, где нет изменений
-        pattern = r'(\d{4}|\d{4}\s\—\s\d{4}).{,30}UTC '\
-                    '([\+\-]\d{,2}\:{,1}\d{,2}\:{,1}\d{,2}).{,1}h'
-        result1 = re.findall(pattern, text)
-        #выбираем все года, где есть изменения
-        pattern = r'(\d{8}.\d{4}).{,50}'\
-                    '([\+\-]\d{,2}\:{,1}\d{,2}\:{,1}\d{,2}).{,1}h'
-        result2 = re.findall(pattern, text)
-        res += result2 + result1
-    return res
 
 def main():
     try:
@@ -42,59 +25,35 @@ def main():
         print(f"отсутсвует файл cookies, запускаем selenium")
         cookies = get_cookies()
         print('Launching the parser')
-
-    # создаем сессию
-    asession = HTMLSession()
+    asession = HTMLSession()  # создаем сессию
     # добавляем cookies в сессию
     for cookie in cookies:
         asession.cookies.set(cookie['name'], cookie['value'])
+    start_time = datetime.now()  # подключаем счетчик времени
 
-    start_time = datetime.now()
-
-    # создаем директорию для файлов
-    results_dir_correct = BASE_DIR/'results'/'correct'
-    results_dir_correct.mkdir(parents=True, exist_ok=True)
-    results_dir_without_data = BASE_DIR/'results'/'without_data'
-    results_dir_without_data.mkdir(parents=True, exist_ok=True)
-    results_dir_time_zone_or_military_time = BASE_DIR/'results'/'time_zone_or_military_time'
-    results_dir_time_zone_or_military_time.mkdir(parents=True, exist_ok=True)
-    results_dir_errors_pages = BASE_DIR/'results'/'errors_pages'
-    results_dir_errors_pages.mkdir(parents=True, exist_ok=True)
-
-    #5959
-    for number in range(1, 5959):
+    for number in range(25, 40):
         print(f"парсим страницу {number}")
         result = []
-        response = asession.get(MAIN_URL, params = {"n":number})
-        # если нет ответа останавливаем
+        response = asession.get(MAIN_URL, params={"n": number})
         if response is None:
             log_error(number)
             continue
-        # получаем url города
-        url = response.html.url
-        # забираем имя города, страны,
+        url = response.html.url  # получаем url города
+        # забираем имя города, страны
         pattern_for_plaсe = r"Time Zone in (.+)"
         table = response.html.xpath(
-                    '//h1[@class="headline-banner__title"]/text()'
-                )
+            '//h1[@class="headline-banner__title"]/text()'
+        )
         try:
             place = re.search(
                 pattern_for_plaсe, " ".join(table).replace(", ", "_")
-            ).group(1).replace("/", "|")
+            ).group(1).replace("/", "_")
         except Exception:
-            log_text(number, r"Ошибка при создании имени!")
-            file_path = f"{results_dir_errors_pages}/{name_file}.txt"
-            with open(file_path, "w") as f:
-                f.writelines(x+"\n" for x in result)
+            log_text(number, r"Ошибка при создании имени!, фаил не сохранен")
             continue
         # сощдаем имя файла для записи
-        place = place.replace(" ", "_")
-        place = unidecode(place)
-        num_for_file = format(number, '0>4n')
-        name_file = f'{num_for_file}_{place}'
-        name_file = name_file.replace("__", "_")
-
-        if 'time_zone' not in place.lower():
+        name_file = format_name(place, number)
+        if 'time_zone' not in name_file.lower():
             try:
                 # получаем все временные промежутки
                 times_list = get_times_list(response)
@@ -115,31 +74,23 @@ def main():
                 else:
                     log_text(number, "не нашли изменений")
                     file_path = f"{results_dir_without_data}/{name_file}.txt"
-                    with open(file_path, "w") as f:
-                        f.writelines(x+"\n" for x in result)
-                    continue
+                    save_file(file_path, result, number)
             except Exception:
-                log_text(number, r"Еще что-то случилось!")
-                file_path = f"{results_dir_errors_pages}/{name_file}.txt"
-                with open(file_path, "w") as f:
-                    f.writelines(x+"\n" for x in result)
+                log_text(number, r"Не стандартная страница")
                 continue
         else:
             log_text(number, r"страница 'Time Zone' или 'Military Time'")
             file_path = f"{results_dir_time_zone_or_military_time}/{name_file}.txt"
-            with open(file_path, "w") as f:
-                f.writelines(x+"\n" for x in result)
+            save_file(file_path, result, number)
             continue
-
-        # сохраняем в фаил
-        file_path = f"{results_dir_correct}/{name_file}.txt"
-        with open(file_path, "w") as f:
-            f.writelines(x+"\n" for x in result)
+        file_path = f"{results_dir_correct}\{name_file}.txt"
+        save_file(file_path, result, number)
+        continue
 
     print("парсер закончил работу")
     print("Проверьте log_file")
-    print(datetime.now() - start_time )
+    print(datetime.now() - start_time)
     os.system("pause")
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
