@@ -10,6 +10,7 @@ from utils import (
     log_text, log_error, get_times_list,
     format_time, format_date, add_data,
     save_file, MAIN_URL, format_name,
+    len_files_in_dirs,
     results_dir_correct,
     results_dir_without_data,
     results_dir_time_zone_or_military_time
@@ -31,7 +32,7 @@ def main():
         asession.cookies.set(cookie['name'], cookie['value'])
     start_time = datetime.now()  # подключаем счетчик времени
 
-    for number in range(25, 40):
+    for number in range(1, 5960):
         print(f"парсим страницу {number}")
         result = []
         response = asession.get(MAIN_URL, params={"n": number})
@@ -75,6 +76,7 @@ def main():
                     log_text(number, "не нашли изменений")
                     file_path = f"{results_dir_without_data}/{name_file}.txt"
                     save_file(file_path, result, number)
+                    continue
             except Exception:
                 log_text(number, r"Не стандартная страница")
                 continue
@@ -85,8 +87,9 @@ def main():
             continue
         file_path = f"{results_dir_correct}\{name_file}.txt"
         save_file(file_path, result, number)
-        continue
 
+
+    len_files_in_dirs()
     print("парсер закончил работу")
     print("Проверьте log_file")
     print(datetime.now() - start_time)

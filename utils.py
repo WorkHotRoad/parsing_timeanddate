@@ -3,6 +3,7 @@ import re
 from urllib.parse import urljoin
 from pathlib import Path
 from unidecode import unidecode
+import os
 
 MAIN_URL = "http://www.timeanddate.com/worldclock/timezone.html"
 URL_FOR_LOGIN = "https://www.timeanddate.com/custom/login.html"
@@ -17,12 +18,29 @@ results_dir_time_zone_or_military_time = BASE_DIR / \
 results_dir_time_zone_or_military_time.mkdir(parents=True, exist_ok=True)
 
 
+def len_files_in_dirs():
+    files_1 = len(os.listdir(path=results_dir_correct))
+    loog_done(files_1, "correct")
+    files_2 = len(
+        os.listdir(path=results_dir_without_data)
+    )
+    loog_done(files_2, "without_data")
+    files_3 = len(
+        os.listdir(path=results_dir_time_zone_or_military_time)
+    )
+    loog_done(files_3, "time_zone_or_military_time")
+    all_files = files_1 + files_2 + files_3
+    logging.info(f"Общее кол-во файлов: {all_files}")
+
+
+
 def format_name(place, number):
-    place = place.replace(" ", "_")
+    repl_simv = (" ", '"', "__")
     place = unidecode(place)
     num_for_file = format(number, '0>4n')
     name_file = f'{num_for_file}_{place}'
-    name_file = name_file.replace("__", "_")
+    for i in repl_simv:
+        name_file =  name_file.replace(i, "_")
     return name_file
 
 
@@ -33,7 +51,7 @@ logging.basicConfig(
             encoding='utf-8',
             mode='a+'
         )
-    ], level=logging.WARNING
+    ], level=logging.INFO
 )
 
 
@@ -44,6 +62,8 @@ def save_file(file_path, result, number):
     except:
         log_text(number, " - Ошибка записи файла")
 
+def loog_done(num, dir):
+    logging.info(f"в папке {dir} - {num} файлов")
 
 def log_text(number, text):
     n = f'?n={number}'
